@@ -1,0 +1,139 @@
+/* ==========================================================================
+   Academic Resource Sharing Platform - Custom Stylesheet
+   ========================================================================== */
+
+:root {
+    --primary-color: #0d6efd;
+    --primary-dark: #0a58ca;
+    --card-border-radius: 12px;
+    --transition-speed: 0.25s;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #212529;
+    background-color: #f8f9fa;
+}
+
+/* --------------------------------------------------------------------------
+   Resource Cards Styling
+   -------------------------------------------------------------------------- */
+.resource-card {
+    border-radius: var(--card-border-radius);
+    border: 1px solid rgba(0, 0, 0, 0.07);
+    background-color: #ffffff;
+    transition: transform var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
+    overflow: hidden;
+    position: relative;
+}
+
+.resource-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.09) !important;
+    border-color: rgba(13, 110, 253, 0.25);
+}
+
+.resource-card .card-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1.4;
+    color: #1a1e21;
+}
+
+.resource-card .card-title a {
+    color: inherit;
+    transition: color 0.15s ease;
+}
+
+.resource-card .card-title a:hover {
+    color: var(--primary-color);
+}
+
+.resource-card .card-subtitle {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #6c757d;
+}
+
+.resource-card .card-text {
+    font-size: 0.9rem;
+    color: #495057;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Resource Category & Branch Badges */
+.badge-branch {
+    background: linear-gradient(135deg, #0d6efd, #0dcaf0);
+    color: #ffffff;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    padding: 0.35em 0.65em;
+    border-radius: 6px;
+}
+
+.badge-type {
+    background-color: #e9ecef;
+    color: #495057;
+    font-weight: 600;
+    padding: 0.35em 0.65em;
+    border-radius: 6px;
+}
+
+.badge-status-approved {
+    background-color: #198754;
+    color: #ffffff;
+}
+
+.badge-status-pending {
+    background-color: #ffc107;
+    color: #000000;
+}
+
+.badge-status-rejected {
+    background-color: #dc3545;
+    color: #ffffff;
+}
+
+/* Card Top Border Indicator by Resource Type */
+.resource-card[data-type="NOTES"] {
+    border-top: 4px solid #0d6efd;
+}
+.resource-card[data-type="PYQ"] {
+    border-top: 4px solid #ffc107;
+}
+.resource-card[data-type="SYLLABUS"] {
+    border-top: 4px solid #0dcaf0;
+}
+.resource-card[data-type="ASSIGNMENT"] {
+    border-top: 4px solid #6f42c1;
+}
+.resource-card[data-type="LAB_MANUAL"] {
+    border-top: 4px solid #198754;
+}
+.resource-card[data-type="REFERENCE_BOOK"] {
+    border-top: 4px solid #fd7e14;
+}
+
+/* --------------------------------------------------------------------------
+   Form & Input Enhancements
+   -------------------------------------------------------------------------- */
+.form-control:focus,
+.form-select:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.15);
+}
+
+.card {
+    border-radius: var(--card-border-radius);
+}
+
+/* --------------------------------------------------------------------------
+   Footer
+   -------------------------------------------------------------------------- */
+.footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}

@@ -1,0 +1,71 @@
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top shadow-sm">
+    <div class="container">
+        <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="/">
+            <span class="fs-4">&#128218;</span>
+            <span>Academic Resource Hub</span>
+        </a>
+        <button
+            class="navbar-toggler"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#mainNavbar"
+            aria-controls="mainNavbar"
+            aria-expanded="false"
+            aria-label="Toggle navigation"
+        >
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="mainNavbar">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link" href="/">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/resources">Resources</a>
+                </li>
+                <% if (currUser) { %>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/resources/new">Upload</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/resources/my-resources">My Uploads</a>
+                    </li>
+                    <% if (currUser.role === 'ADMIN') { %>
+                        <li class="nav-item">
+                            <a class="nav-link text-warning fw-semibold" href="/admin/dashboard">
+                                &#9881; Admin Panel
+                            </a>
+                        </li>
+                    <% } %>
+                <% } %>
+            </ul>
+
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-lg-center gap-2">
+                <% if (!currUser) { %>
+                    <li class="nav-item">
+                        <a class="btn btn-outline-light btn-sm px-3" href="/login">Login</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="btn btn-primary btn-sm px-3" href="/register">Register</a>
+                    </li>
+                <% } else { %>
+                    <li class="nav-item text-light small me-2">
+                        <% if (currUser.role === 'ADMIN') { %>
+                            <span class="badge bg-danger me-2 px-2 py-1 fw-bold">ADMIN</span>
+                        <% } else { %>
+                            <span class="text-secondary">Branch:</span>
+                            <span class="badge bg-primary me-2"><%= currUser.branch || 'GENERAL' %></span>
+                        <% } %>
+                        <span class="text-white-50"><%= currUser.email ? currUser.email.split('@')[0] : 'User' %></span>
+                    </li>
+                    <li class="nav-item">
+                        <form action="/logout" method="POST" class="d-inline m-0">
+                            <button class="btn btn-sm btn-outline-danger px-3" type="submit">Logout</button>
+                        </form>
+                    </li>
+                <% } %>
+            </ul>
+        </div>
+    </div>
+</nav>

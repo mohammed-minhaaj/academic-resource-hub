@@ -1,0 +1,32 @@
+services:
+  app:
+    build: .
+    container_name: academic-resource-app
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - MONGODB_URI=mongodb://mongo:27017/academic_resource_db
+      - SESSION_SECRET=production_session_secret_key_change_me
+      - JWT_SECRET=production_jwt_secret_key_change_me
+      - COOKIE_SECRET=production_cookie_secret_key_change_me
+      - STORAGE_TYPE=local
+    volumes:
+      - uploads_data:/usr/src/app/public/uploads
+    depends_on:
+      - mongo
+
+  mongo:
+    image: mongo:latest
+    container_name: academic-resource-mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+  mongo_data:
+  uploads_data:

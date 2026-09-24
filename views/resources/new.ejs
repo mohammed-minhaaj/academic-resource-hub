@@ -1,0 +1,143 @@
+<% layout('layouts/boilerplate') %>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8 col-xl-7">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-primary text-white py-3">
+                <h4 class="mb-0 fw-bold">Upload Academic Resource</h4>
+            </div>
+            <div class="card-body p-4 p-md-5">
+                <p class="text-muted small mb-4">
+                    Share course notes, previous question papers, or lab manuals with your branch peers.
+                </p>
+
+                <form action="/resources" method="POST" enctype="multipart/form-data" class="needs-validation" novalidate>
+                    <div class="mb-3">
+                        <label for="title" class="form-label fw-semibold">Resource Title <span class="text-danger">*</span></label>
+                        <input
+                            type="text"
+                            class="form-control"
+                            id="title"
+                            name="title"
+                            placeholder="e.g. Operating Systems Unit 1 & 2 Lecture Notes"
+                            required
+                        >
+                        <div class="valid-feedback">Looks good!</div>
+                        <div class="invalid-feedback">Please enter a descriptive title (min 3 characters).</div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="subject" class="form-label fw-semibold">Subject / Course Name <span class="text-danger">*</span></label>
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="subject"
+                                name="subject"
+                                placeholder="e.g. Database Management Systems"
+                                required
+                            >
+                            <div class="valid-feedback">Looks good!</div>
+                            <div class="invalid-feedback">Please provide the subject or course name.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="resourceType" class="form-label fw-semibold">Category <span class="text-danger">*</span></label>
+                            <select class="form-select" id="resourceType" name="resourceType" required>
+                                <option value="" disabled selected>Select category</option>
+                                <option value="NOTES">Lecture Notes</option>
+                                <option value="PYQ">Previous Year Questions (PYQ)</option>
+                                <option value="SYLLABUS">Syllabus</option>
+                                <option value="ASSIGNMENT">Assignment Solution</option>
+                                <option value="LAB_MANUAL">Lab Manual</option>
+                                <option value="REFERENCE_BOOK">Reference Book</option>
+                                <option value="OTHER">Other</option>
+                            </select>
+                            <div class="invalid-feedback">Please select a resource category.</div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="semester" class="form-label fw-semibold">Target Semester</label>
+                            <select class="form-select" id="semester" name="semester">
+                                <option value="">Select semester (Optional)</option>
+                                <% for (let i = 1; i <= 8; i++) { %>
+                                    <option value="<%= i %>">Semester <%= i %></option>
+                                <% } %>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Branch / Department</label>
+                            <% if (currUser && currUser.role === 'ADMIN') { %>
+                                <select class="form-select" id="branch" name="branch">
+                                    <option value="ALL" selected>All Departments (College-Wide)</option>
+                                    <option value="CSE">CSE</option>
+                                    <option value="CSM">CSM</option>
+                                    <option value="ECE">ECE</option>
+                                    <option value="EEE">EEE</option>
+                                    <option value="INF">INF</option>
+                                    <option value="MECH">MECH</option>
+                                    <option value="CIV">CIV</option>
+                                    <option value="CSD">CSD</option>
+                                    <option value="CSC">CSC</option>
+                                    <option value="CSBS">CSBS</option>
+                                    <option value="AID">AID</option>
+                                    <option value="AUT">AUT</option>
+                                    <option value="EIE">EIE</option>
+                                    <option value="EVL">EVL</option>
+                                    <option value="RAI">RAI</option>
+                                    <option value="CSO">CSO</option>
+                                </select>
+                                <small class="text-muted">As an admin, publish college-wide or to a specific branch.</small>
+                            <% } else { %>
+                                <input
+                                    type="text"
+                                    class="form-control bg-light"
+                                    name="branch"
+                                    value="<%= (currUser && currUser.branch) ? currUser.branch : 'Mapped from Account' %>"
+                                    readonly
+                                >
+                                <small class="text-muted">Auto-assigned from your VNR VJIET credentials.</small>
+                            <% } %>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="description" class="form-label fw-semibold">Description & Covered Topics <span class="text-danger">*</span></label>
+                        <textarea
+                            class="form-control"
+                            id="description"
+                            name="description"
+                            rows="4"
+                            placeholder="Detail chapters, topics, professor references, or regulation..."
+                            required
+                        ></textarea>
+                        <div class="valid-feedback">Looks good!</div>
+                        <div class="invalid-feedback">Please provide a brief description (min 10 characters).</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="file" class="form-label fw-semibold">Attach Document <span class="text-danger">*</span></label>
+                        <input
+                            type="file"
+                            class="form-control"
+                            id="file"
+                            name="file"
+                            accept=".pdf,.doc,.docx,.ppt,.pptx,.zip,.jpg,.jpeg,.png"
+                            required
+                        >
+                        <div class="form-text">
+                            Allowed formats: PDF, DOCX, PPTX, ZIP, PNG, JPG (Max 50MB). Stored securely on S3.
+                        </div>
+                        <div class="invalid-feedback">A document file is required.</div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center pt-2">
+                        <a href="/resources" class="btn btn-outline-secondary">&larr; Cancel</a>
+                        <button type="submit" class="btn btn-primary px-4 fw-semibold">Submit for Verification</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

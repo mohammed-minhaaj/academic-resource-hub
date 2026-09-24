@@ -1,0 +1,111 @@
+<% layout('layouts/boilerplate') %>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8 col-xl-7">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-dark text-white py-3">
+                <h4 class="mb-0 fw-bold">Edit Resource</h4>
+            </div>
+            <div class="card-body p-4 p-md-5">
+                <form action="/resources/<%= resource._id %>?_method=PUT" method="POST" enctype="multipart/form-data" class="needs-validation" novalidate>
+                    <div class="mb-3">
+                        <label for="title" class="form-label fw-semibold">Resource Title <span class="text-danger">*</span></label>
+                        <input
+                            type="text"
+                            class="form-control"
+                            id="title"
+                            name="title"
+                            value="<%= resource.title %>"
+                            required
+                        >
+                        <div class="valid-feedback">Looks good!</div>
+                        <div class="invalid-feedback">Title cannot be empty.</div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="subject" class="form-label fw-semibold">Subject / Course <span class="text-danger">*</span></label>
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="subject"
+                                name="subject"
+                                value="<%= resource.subject %>"
+                                required
+                            >
+                            <div class="valid-feedback">Looks good!</div>
+                            <div class="invalid-feedback">Subject cannot be empty.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="resourceType" class="form-label fw-semibold">Category <span class="text-danger">*</span></label>
+                            <select class="form-select" id="resourceType" name="resourceType" required>
+                                <option value="NOTES" <%= resource.resourceType === 'NOTES' ? 'selected' : '' %>>Lecture Notes</option>
+                                <option value="PYQ" <%= resource.resourceType === 'PYQ' ? 'selected' : '' %>>Previous Year Questions (PYQ)</option>
+                                <option value="SYLLABUS" <%= resource.resourceType === 'SYLLABUS' ? 'selected' : '' %>>Syllabus</option>
+                                <option value="ASSIGNMENT" <%= resource.resourceType === 'ASSIGNMENT' ? 'selected' : '' %>>Assignment Solution</option>
+                                <option value="LAB_MANUAL" <%= resource.resourceType === 'LAB_MANUAL' ? 'selected' : '' %>>Lab Manual</option>
+                                <option value="REFERENCE_BOOK" <%= resource.resourceType === 'REFERENCE_BOOK' ? 'selected' : '' %>>Reference Book</option>
+                                <option value="OTHER" <%= resource.resourceType === 'OTHER' ? 'selected' : '' %>>Other</option>
+                            </select>
+                            <div class="invalid-feedback">Please select a category.</div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="semester" class="form-label fw-semibold">Semester</label>
+                            <select class="form-select" id="semester" name="semester">
+                                <option value="">Select semester (Optional)</option>
+                                <% for (let i = 1; i <= 8; i++) { %>
+                                    <option value="<%= i %>" <%= resource.semester === i ? 'selected' : '' %>>Semester <%= i %></option>
+                                <% } %>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Branch</label>
+                            <input
+                                type="text"
+                                class="form-control bg-light"
+                                name="branch"
+                                value="<%= resource.branch %>"
+                                readonly
+                            >
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="description" class="form-label fw-semibold">Description <span class="text-danger">*</span></label>
+                        <textarea
+                            class="form-control"
+                            id="description"
+                            name="description"
+                            rows="4"
+                            required
+                        ><%= resource.description %></textarea>
+                        <div class="valid-feedback">Looks good!</div>
+                        <div class="invalid-feedback">Description cannot be empty.</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="file" class="form-label fw-semibold">Replace File (Optional)</label>
+                        <input
+                            type="file"
+                            class="form-control"
+                            id="file"
+                            name="file"
+                            accept=".pdf,.doc,.docx,.ppt,.pptx,.zip,.jpg,.jpeg,.png"
+                        >
+                        <div class="form-text">
+                            Leave blank to keep current file. If a new file is uploaded, the existing S3 file is replaced.
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center pt-2">
+                        <a href="/resources/<%= resource._id %>" class="btn btn-outline-secondary">&larr; Cancel</a>
+                        <button type="submit" class="btn btn-primary px-4 fw-semibold">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
