@@ -3,7 +3,8 @@
 [![Node.js](https://img.shields.io/badge/Node.js-v18%2B-green.svg)](https://nodejs.org/)
 [![Express.js](https://img.shields.io/badge/Express.js-v4.21-lightgrey.svg)](https://expressjs.com/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose%20v8-brightgreen.svg)](https://www.mongodb.com/)
-[![AWS S3](https://img.shields.io/badge/AWS%20S3-Multer--S3-orange.svg)](https://aws.amazon.com/s3/)
+[![Docker](https://img.shields.io/badge/Docker-Containerized-blue.svg)](https://www.docker.com/)
+[![AWS S3](https://img.shields.io/badge/AWS%20S3-Cloud%20Storage-orange.svg)](https://aws.amazon.com/s3/)
 [![Bootstrap](https://img.shields.io/badge/Bootstrap-v5.3-purple.svg)](https://getbootstrap.com/)
 [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
 
@@ -11,36 +12,146 @@
 
 ---
 
-## 🌟 Key Highlights & Engineering Features
+## 🛠️ Core Technologies & How They Are Used
 
-### 🏛️ 1. Intelligent Branch Resolution
-- **Email Regex & Parsing**: Enforces strict `@vnrvjiet.in` college email addresses during registration.
-- **Mongoose Pre-Save Hook**: Automatically analyzes roll numbers (e.g., `25071a6643@vnrvjiet.in`), parses indices `6` and `7` (`66`), and maps them directly to the student's department (**CSM** - Computer Science and Machine Learning).
-- **Auto-Assigned Uploads**: Students cannot falsify or miscategorize their department—uploads automatically bind to their credential branch.
+This platform leverages modern cloud-native, containerization, and database technologies to ensure high reliability, security, and scalability:
 
-### 🛡️ 2. Hybrid Security & Authentication
-- **JWT in HTTP-Only Cookies**: Issues signed JSON Web Tokens stored securely in `httpOnly`, `sameSite: lax` cookies with `secure` flags in production to mitigate XSS and CSRF vectors.
-- **Bcrypt Password Hashing**: Defensive pre-save hooks automatically hash passwords using 12 salt rounds before persisting to MongoDB.
-- **Decoupled Flash Session**: Sessions (`express-session` + `connect-flash`) are strictly isolated for transient user notification messages without bloating authentication state.
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                        ACADEMIC RESOURCE HUB                           │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │
+         ┌──────────────────────────┼──────────────────────────┐
+         ▼                          ▼                          ▼
+┌──────────────────┐       ┌──────────────────┐       ┌──────────────────┐
+│     🍃 MONGODB   │       │   ☁️ AWS S3 /    │       │    🐳 DOCKER &   │
+│   (Mongoose ODM) │       │      MINIO       │       │  DOCKER COMPOSE  │
+├──────────────────┤       ├──────────────────┤       ├──────────────────┤
+│ • Automated user │       │ • Streaming file │       │ • Containerized  │
+│   branch parser  │       │   uploads via    │       │   Express &      │
+│ • Bcrypt hashing │       │   multer-s3      │       │   MongoDB stack  │
+│ • Compound index │       │ • Ephemeral-safe │       │ • Isolated dev & │
+│ • Atomic reports │       │   cloud storage  │       │   production env │
+│ • College-wide   │       │ • Auto-cleanup   │       │ • One-command    │
+│   $or discovery  │       │   via DeleteCmd  │       │   deployment     │
+└──────────────────┘       └──────────────────┘       └──────────────────┘
+```
 
-### 📦 3. Dual Storage Architecture (Cloud S3 + Local Disk)
-- **Production AWS S3 / MinIO**: Configured via `@aws-sdk/client-s3` and `multer-s3` with `forcePathStyle: true` for local S3 emulation (MinIO) or real AWS buckets.
-- **Zero-Config Local Fallback**: When `STORAGE_TYPE=local` (default for local development), documents are automatically stored to `public/uploads/resources/` with normalized paths so the app works out of the box with zero external dependencies.
+### 1. 🍃 MongoDB & Mongoose ODM
+* **Why it's used**: Relational databases enforce rigid tabular schemas that create friction for evolving academic document metadata (different semesters, categories, report flags, file links, and dynamic branch codes). MongoDB provides high-performance, document-oriented persistence with dynamic querying.
+* **How it's implemented**:
+  - **Automated Branch Resolution**: A Mongoose pre-save hook analyzes incoming student emails (e.g. `25071a6643@vnrvjiet.in`), extracts roll-number indices `6` and `7` (`66`), and automatically assigns the student's department (`CSM`) to prevent fraudulent branch impersonation.
+  - **Defensive Password Encryption**: The user schema pre-save hook automatically hashes passwords using `bcrypt` (12 salt rounds) prior to persisting.
+  - **Compound Query Optimization**: Indexed across `{ branch: 1, subject: 1, resourceType: 1 }` and `{ status: 1 }` for sub-millisecond discovery filtering.
+  - **Atomic Moderation & Reporting**: Uses `$inc: { reportCount: 1 }` for thread-safe concurrent peer reporting without race conditions.
+  - **Cross-Department Admin Broadcasts**: The discovery router dynamically queries `$or: [{ branch }, { branch: "ALL" }, { branch: "ADMIN" }, { uploader: { $in: adminIds } }]`, allowing files uploaded by administrators to be accessible to all students across all 16 departments.
 
-### 🚦 4. Two-Tier Moderation & Approval Pipeline
-- **Student Uploads**: Default to `PENDING` status. Pending uploads are hidden from public feeds and accessible only to the uploader under **"My Uploads"** until verified.
-- **Admin Auto-Approval & Broadcast**: Uploads by Admins default to `APPROVED` and can be broadcasted college-wide with the special **`ALL DEPTS`** tag.
-- **Admin Moderation Dashboard**: Real-time KPI dashboard (`/admin/dashboard`) allowing administrators to inspect PDFs, approve, reject, or permanently purge inappropriate records and their S3/local files.
+---
 
-### 🚩 5. Community Content Flagging (Peer Reporting)
-- Authenticated students can flag outdated or misleading documents using the **Report** action.
-- Atomically increments `reportCount` (`$inc: { reportCount: 1 }`).
-- Flagged resources are visually highlighted on the Admin Dashboard with warning badges and sorted by priority.
+### 2. ☁️ AWS S3 & Cloud Storage (with MinIO Local Emulation)
+* **Why it's used**: Production cloud platforms (Render, Railway, Heroku, AWS ECS) operate on **ephemeral filesystems**—any file saved to the local container disk is destroyed whenever the server restarts, deploys, or auto-scales. AWS S3 provides 99.999999999% (11 9's) durability, unlimited scalability, and secure, high-speed direct downloads.
+* **How it's implemented**:
+  - **Dual Storage Engine (`utils/s3Config.js`)**:
+    - **Cloud Mode (`STORAGE_TYPE=s3`)**: Uses `@aws-sdk/client-s3` and `multer-s3` with `forcePathStyle: true` to stream files directly to Amazon S3 buckets or local S3-compatible MinIO instances.
+    - **Local Disk Mode (`STORAGE_TYPE=local`)**: A built-in fallback storing files in `public/uploads/resources/` for instant local testing without cloud credentials.
+  - **Lifecycle File Cleanup**: When an admin or student deletes or replaces a resource, `DeleteObjectCommand` automatically purges the orphaned file from the S3 bucket to prevent zombie storage costs.
 
-### 🔍 6. Strict Validation & Error Handling
-- **Server-Side Joi Schema**: Strict validation enforcing type safety, non-empty fields, supported document categories, and URL format integrity.
-- **Bootstrap 5 Client Validation**: Custom `script.js` intercepting invalid inputs with visual feedback states (`was-validated`).
-- **Centralized Async Catch**: Custom `wrapAsync` higher-order utility paired with `ExpressError` ensures unhandled exceptions render standardized error templates or JSON responses without crashing the runtime.
+---
+
+### 3. 🐳 Docker & Docker Compose
+* **Why it's used**: Eliminates the classic *"it works on my machine"* problem by packaging the Node.js application, its runtime dependencies, configuration, and a dedicated MongoDB database into reproducible, isolated containers.
+* **How it's implemented**:
+  - **Production `Dockerfile`**: Built on lightweight `node:20-alpine`, utilizing layered caching (`COPY package*.json ./` before source files) and `npm ci --only=production` to keep the production image tiny, fast, and secure.
+  - **Orchestration with `docker-compose.yml`**: Defines a multi-container network containing the Express web application and an official `mongo:latest` service with persistent volume storage (`mongo_data:/data/db`). Anyone can run the entire platform with a single command without installing Node.js or MongoDB locally.
+
+---
+
+## 📋 Mandatory Prerequisites & Installation Guide
+
+Before running the project, **ensure you have downloaded and installed the required software for your operating system**:
+
+### 1. 🟢 Node.js & npm (Required for native execution)
+- **Minimum Version**: Node.js `v18.0.0` or higher
+- **Download**: [https://nodejs.org/en/download](https://nodejs.org/en/download)
+- **Verify Installation**:
+  ```bash
+  node -v   # Should print v18.x.x, v20.x.x, or v22.x.x
+  npm -v    # Should print v9.x.x or higher
+  ```
+
+---
+
+### 2. 🐳 Docker Desktop (Required for containerized execution)
+- **Why you need it**: If you do not want to install MongoDB or configure local services manually, Docker runs everything inside containers automatically.
+- **Download**: [https://www.docker.com/products/docker-desktop/](https://www.docker.com/products/docker-desktop/) (Available for macOS, Windows, and Linux).
+- **Verify Installation**:
+  ```bash
+  docker --version          # e.g., Docker version 24.x or higher
+  docker compose version    # e.g., Docker Compose version v2.x or higher
+  ```
+
+---
+
+### 3. 🍃 MongoDB (Choose Option A or Option B)
+
+#### Option A: Local MongoDB Community Server
+- **macOS (via Homebrew)**:
+  ```bash
+  brew tap mongodb/brew
+  brew install mongodb-community
+  brew services start mongodb-community
+  ```
+- **Windows**: Download the `.msi` installer from [MongoDB Community Server](https://www.mongodb.com/try/download/community) and run the installer (keep "Install MongoDB as a Service" checked).
+- **Linux (Ubuntu/Debian)**:
+  ```bash
+  sudo apt-get install -y mongodb-org
+  sudo systemctl start mongod
+  ```
+- **Verify Installation**:
+  ```bash
+  mongosh --eval "db.runCommand({ ping: 1 })"
+  # Should print: { ok: 1 }
+  ```
+
+#### Option B: Cloud-Hosted MongoDB Atlas (Zero Local Installation)
+1. Sign up for free at [MongoDB Atlas](https://www.mongodb.com/atlas).
+2. Create an **M0 Free Cluster**.
+3. Under **Network Access**, add `0.0.0.0/0` (Allow from anywhere).
+4. Under **Database Access**, create a user and password.
+5. Copy your connection string and paste it into `.env`:
+   ```env
+   MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.mongodb.net/academic_resource_db?retryWrites=true&w=majority
+   ```
+
+---
+
+### 4. ☁️ AWS S3 or Local MinIO (File Storage)
+
+#### Option A: Zero-Config Local Storage (Recommended for first-time run)
+No download needed! Set `STORAGE_TYPE=local` in `.env`. Files are saved to `public/uploads/` on disk.
+
+#### Option B: Local MinIO S3 Server (Docker)
+Run high-performance S3 emulation locally via Docker:
+```bash
+docker run -d -p 9000:9000 -p 9001:9001 --name minio \
+  -e "MINIO_ROOT_USER=minioadmin" \
+  -e "MINIO_ROOT_PASSWORD=minioadmin" \
+  minio/minio server /data --console-address ":9001"
+```
+Then create a bucket named `academic-resources`.
+
+#### Option C: Production AWS S3
+1. Log in to the [AWS Management Console](https://aws.amazon.com/s3/).
+2. Create an S3 Bucket (e.g. `academic-resource-sharing-prod`).
+3. Create an IAM User with `AmazonS3FullAccess` and generate Access Keys.
+4. Set credentials in `.env`:
+   ```env
+   STORAGE_TYPE=s3
+   AWS_ACCESS_KEY_ID=your_access_key
+   AWS_SECRET_ACCESS_KEY=your_secret_key
+   AWS_REGION=ap-south-1
+   AWS_BUCKET_NAME=your_bucket_name
+   ```
 
 ---
 
@@ -134,6 +245,81 @@ academic-resource/
 
 ---
 
+## ⚡ How to Run the Application
+
+You can run the application either using **Docker** (Method 1) or natively using **Node.js** (Method 2).
+
+### 🚀 Method 1: Run with Docker Compose (Recommended — Zero Configuration)
+If you have **Docker Desktop** installed, you do not need to install Node.js or MongoDB:
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/mohammed-minhaaj/academic-resource-hub.git
+   cd academic-resource-hub
+   ```
+2. Build and start the containers:
+   ```bash
+   docker compose up -d --build
+   ```
+3. Open your browser and visit:
+   ```
+   http://localhost:3000
+   ```
+4. To stop the containers when finished:
+   ```bash
+   docker compose down
+   ```
+
+---
+
+### 💻 Method 2: Run Natively with Node.js & Local MongoDB
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/mohammed-minhaaj/academic-resource-hub.git
+   cd academic-resource-hub
+   ```
+
+2. **Install npm dependencies**:
+   ```bash
+   npm install
+   ```
+
+3. **Configure Environment Variables**:
+   ```bash
+   cp .env.example .env
+   ```
+   *The default values in `.env` are already pre-configured for local development with `STORAGE_TYPE=local`.*
+
+4. **Ensure MongoDB is Running**:
+   ```bash
+   brew services start mongodb-community
+   # or run mongod in your terminal
+   ```
+
+5. **Seed Sample Data (Recommended)**:
+   Populate initial student accounts, an admin account, and approved documents:
+   ```bash
+   npm run seed
+   ```
+   *Created Accounts:*
+   - **Admin**: `admin@vnrvjiet.in` (Password: `adminpassword123`, Role: `ADMIN`)
+   - **Student 1 (CSM)**: `25071a6643@vnrvjiet.in` (Password: `studentpassword123`)
+   - **Student 2 (ECE)**: `25071a0412@vnrvjiet.in` (Password: `studentpassword123`)
+
+6. **Start the Application**:
+   ```bash
+   # Development mode with live reload:
+   npm run dev
+
+   # Or standard production mode:
+   npm start
+   ```
+
+7. **Visit**: `http://localhost:3000`
+
+---
+
 ## 🔌 API & Route Endpoints
 
 ### 🔐 Authentication Routes (`/`)
@@ -148,7 +334,7 @@ academic-resource/
 ### 📚 Resource Routes (`/resources`)
 | Method | Endpoint | Access | Description |
 | :---: | :--- | :---: | :--- |
-| `GET` | `/resources` | Public | Discovery feed (filtered by student's branch + Admin uploads) |
+| `GET` | `/resources` | Public | Discovery feed (student's branch + Admin college-wide uploads) |
 | `GET` | `/resources/new` | Logged In | Render upload form (auto-binds student branch) |
 | `POST` | `/resources` | Logged In | Upload document via Multer (S3/local), run Joi validation |
 | `GET` | `/resources/my-resources` | Logged In | View personal uploads with moderation status |
@@ -167,87 +353,24 @@ academic-resource/
 
 ---
 
-## 🚀 Quickstart & Local Setup
+## 🚢 Cloud Production Deployment (Render + MongoDB Atlas + AWS S3)
 
-### 1. Clone & Install
-```bash
-git clone https://github.com/<your-username>/academic-resource-hub.git
-cd academic-resource-hub
-npm install
+```
+[Users / Students]
+       │
+       ▼ (HTTPS)
+[Web Service (Render / Railway)] ───► [Database (MongoDB Atlas)]
+       │
+       ▼ (File Uploads)
+[Cloud Storage (AWS S3 Bucket)]
 ```
 
-### 2. Environment Configuration
-Copy the sample environment file:
-```bash
-cp .env.example .env
-```
-
-Verify the `.env` settings (defaults work out of the box for local development):
-```env
-PORT=3000
-NODE_ENV=development
-MONGODB_URI=mongodb://127.0.0.1:27017/academic_resource_db
-SESSION_SECRET=dev_session_secret_12345
-JWT_SECRET=dev_jwt_secret_67890
-COOKIE_SECRET=dev_cookie_secret_abcde
-
-# Storage Mode: 'local' (disk storage) or 's3' (MinIO / AWS S3)
-STORAGE_TYPE=local
-```
-
-### 3. Start Local MongoDB
-Ensure your local MongoDB instance is active:
-```bash
-brew services start mongodb-community
-# or: mongod --config /opt/homebrew/etc/mongod.conf
-```
-
-### 4. Seed Initial Data (Optional, Recommended)
-Run the built-in seed script to populate sample student accounts, an admin account, and approved documents:
-```bash
-npm run seed
-```
-
-This creates:
-- **Admin**: `admin@vnrvjiet.in` (Password: `adminpassword123`, Role: `ADMIN`)
-- **Student 1 (CSM)**: `25071a6643@vnrvjiet.in` (Password: `studentpassword123`)
-- **Student 2 (ECE)**: `25071a0412@vnrvjiet.in` (Password: `studentpassword123`)
-
-### 5. Launch the Application
-```bash
-# Start development server with nodemon:
-npm run dev
-
-# Or start standard production server:
-npm start
-```
-Visit `http://localhost:3000` in your web browser.
-
----
-
-## 🚢 Production Deployment Guide
-
-### Deployment Architecture
-- **Web App**: Hosted on [Render](https://render.com) or [Railway](https://railway.app).
-- **Database**: [MongoDB Atlas](https://www.mongodb.com/atlas) (Free M0 Cluster).
-- **File Storage**: AWS S3 Bucket (or MinIO / Cloudflare R2).
-
-### Step-by-Step Production Setup
-
-1. **Database (MongoDB Atlas)**:
-   - Create a free cluster on MongoDB Atlas.
-   - Whitelist all IPs (`0.0.0.0/0`) in Network Access.
-   - Obtain your connection URI: `mongodb+srv://<user>:<password>@cluster0.xxx.mongodb.net/academic_resource_db`.
-
-2. **File Storage (AWS S3)**:
-   - Create a bucket in your preferred AWS region (e.g. `ap-south-1`).
-   - Create an IAM User with `AmazonS3FullAccess` and generate Access Keys.
-
-3. **Deploying on Render**:
-   - Create a new **Web Service** on Render and link your GitHub repository.
-   - Build Command: `npm install`
-   - Start Command: `npm start`
-   - Supply Environment Variables:
+1. **MongoDB Atlas**: Create a free M0 cluster, whitelist `0.0.0.0/0`, and copy your connection string.
+2. **AWS S3**: Create a bucket with public read enabled for objects, create an IAM user with `AmazonS3FullAccess`, and generate Access Keys.
+3. **Deploy on Render.com**:
+   - Create a **New Web Service** connected to your GitHub repo.
+   - Build Command: `npm install` | Start Command: `npm start`
+   - Add Environment Variables:
      - `NODE_ENV`: `production`
      - `MONGODB_URI`: `<Atlas Connection String>`
      - `STORAGE_TYPE`: `s3`
@@ -256,12 +379,7 @@ Visit `http://localhost:3000` in your web browser.
      - `AWS_REGION`: `<Your AWS Region>`
      - `AWS_BUCKET_NAME`: `<Your Bucket Name>`
      - `SESSION_SECRET`, `JWT_SECRET`, `COOKIE_SECRET`: `<Secure Random Strings>`
-
-4. **Containerized Deployment (Docker Compose)**:
-   You can also deploy anywhere with Docker in a single command:
-   ```bash
-   docker compose up -d --build
-   ```
+4. **Seed Production DB**: Open the Render Shell tab and run `npm run seed`.
 
 ---
 
